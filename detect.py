@@ -35,7 +35,7 @@ import os
 import platform
 import sys
 from pathlib import Path
-
+import numpy as np
 import torch
 
 FILE = Path(__file__).resolve()
@@ -66,7 +66,7 @@ from utils.general import (
 )
 from utils.torch_utils import select_device, smart_inference_mode
 
-
+from toolpath import Node,tool_path,draw_tool_path,write_csv,convert_to_robot_coords
 @smart_inference_mode()
 def run(
     weights=ROOT / "yolov5s.pt",  # model path or triton URL
@@ -149,6 +149,13 @@ def run(
         run(source='data/videos/example.mp4', weights='yolov5s.pt', conf_thres=0.4, device='0')
         ```
     """
+
+    cm_to_pixel = float(220/220)
+    a = np.array([[-0.999999999999886, -3.5527136788005E-14, 1.91846538655235E-13, 158.0163],
+              [1.77635683940025E-13, 0.99999999999995, 9.94759830064095E-14, 177.5897],
+              [1.91846538655227E-13, -9.9475983006414E-14, 0.999999999999837, 212.5535],
+              [0, 0, 0, 1]])
+    
     source = str(source)
     save_img = not nosave and not source.endswith(".txt")  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -243,26 +250,30 @@ def run(
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
 
+
+    
+
             flag=True
 
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
-                 for *xyxy, conf, cls in reversed(det):
+                for *xyxy, conf, cls in reversed(det):
                     bbox = torch.tensor(xyxy).view(1, 4).view(-1).tolist()
-                    start = Node(bbox[0], (bbox[1]+bbox[3])/2)
-                    goal = Node(bbox[2], (bbox[1]+bbox[3])/2)
+                    start = Node(bbox[0], (bbox[1]+bbox[3])/2,0)
+                    goal = Node(bbox[2], (bbox[1]+bbox[3])/2,0)
                     width = bbox[2] - bbox[0]
                     height = bbox[3] - bbox[1]
                     steps = 5
-                    path = generate_zigzag_path(start, goal, width, height, steps)
+                    path = tool_path(start, goal, width, height, steps,num_loops=3)
                     path_coords = [(node.x, node.y, node.z) for node in path]
-                    draw_zigzag_path(im0, path_coords)
+                    print(path_coords)
+                    draw_tool_path(im0, path_coords)
 
                     if flag:
-
-                        write_csv(path_coords,names[int(cls)])
+                        robot_path=convert_to_robot_coords(path, a)
+                        write_csv(robot_path)
                         flag=False
 
                 # Print results
