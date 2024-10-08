@@ -15,11 +15,23 @@ class Node:
         self.y = y
         self.z = z
 
-cm_to_pixel = float(220/220)
-a = np.array([[-0.999999999999886, -3.5527136788005E-14, 1.91846538655235E-13, 158.0163],
-              [1.77635683940025E-13, 0.99999999999995, 9.94759830064095E-14, 177.5897],
-              [1.91846538655227E-13, -9.9475983006414E-14, 0.999999999999837, 212.5535],
-              [0, 0, 0, 1]])
+# 시계방향 180도 회전 행렬 생성
+rotation_matrix = np.array([[-1, 0, 0],
+                            [0, 1, 0],
+                            [0, 0, 1]])
+
+# 스케일링 행렬 (x에 1.25, y에 1.4 적용)
+scaling_matrix = np.array([[1.25, 0, 0],
+                           [0, 1.4, 0],
+                           [0, 0, 1]])
+
+# 이동 행렬 (카메라 좌표계의 이동 위치)
+translation_matrix = np.array([[1, 0, 500.25],
+                               [0, 1, -132],
+                               [0, 0, 1]])
+
+# 전체 변환 행렬 계산 (스케일링 → 회전 → 이동)
+transformation_matrix = translation_matrix @ rotation_matrix @ scaling_matrix
 
 def tool_path(start, goal, width, height, steps, num_loops=3):
     path = []
@@ -48,10 +60,10 @@ def convert_to_robot_coords(path, a):
     robot_path = []
     for node in path:
         # 3D 좌표를 4D 동차 좌표로 변환
-        xyz = np.array([node.x, node.y, node.z, 1])
+        xyz = np.array([node.x, node.y, node.z])
         
         # 변환 행렬 a를 사용해 로봇 좌표계로 변환
-        robot_coords = cm_to_pixel * a @ xyz
+        robot_coords = transformation_matrix @ xyz
         
         # 변환된 좌표를 새로운 Node로 추가
         robot_path.append(Node(robot_coords[0], robot_coords[1], robot_coords[2]))
@@ -88,21 +100,6 @@ def write_csv(robot_path):
     # 파일 닫기
     f.close()
 
-
-
-# 툴 패스를 생성
-start_node = Node(0, 0, 0)  # 시작점 예시
-goal_node = Node(10, 0, 0)   # 목표점 예시
-width = 10
-height = 0
-steps = 10
-tool_path_list = tool_path(start_node, goal_node, width, height, steps)
-
-# 로봇 좌표계로 변환
-robot_path = convert_to_robot_coords(tool_path_list, a)
-
-# CSV 파일로 저장
-write_csv(robot_path)
   
 
 
