@@ -1,25 +1,12 @@
-import cv2
 import numpy as np
 
-# 입력 변수
-robot_points = [
-    np.array([245, 335, 1]),
-    np.array([53, 330, 1]),
-    np.array([224, 248, 1]),
-    np.array([-45, 250, 1]),
-    np.array([142, 180, 1])
-]
+# 픽셀 좌표 하나만 설정
+pixel_point = np.array([707.0, 345.0, 1.0])
 
-pixel_points = [
-    np.array([207, 345, 1]),
-    np.array([371, 318, 1]),
-    np.array([237, 269, 1]),
-    np.array([443, 259, 1]),
-    np.array([311, 215, 1])
-]
+# 로봇 좌표
+robot_point = np.array([245, 335, 1])
 
-
-# 반시계방향 180도 회전 행렬 생성
+# y축을 기준으로 x만 반전시킨것 
 rotation_matrix = np.array([[-1, 0, 0],
                             [0, 1, 0],
                             [0, 0, 1]])
@@ -37,7 +24,8 @@ translation_matrix = np.array([[1, 0, 500.25],
 # 전체 변환 행렬 계산 (스케일링 → 회전 → 이동)
 transformation_matrix = translation_matrix @ rotation_matrix @ scaling_matrix
 
+print(transformation_matrix)
 # 테스트 수행
-for i, pixel_point in enumerate(pixel_points):
-    robot_point_transformed = transformation_matrix @ pixel_point
-    print(f"실험 {i+1}: 변환된 로봇 좌표 = {robot_point_transformed}, 실제 로봇 좌표 = {robot_points[i]}")
+robot_point_transformed = transformation_matrix @ pixel_point
+
+print(f"변환된 로봇 좌표 = {robot_point_transformed}, 실제 로봇 좌표 = {robot_point}")
